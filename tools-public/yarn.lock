@@ -1228,6 +1228,11 @@ combined-stream@~1.0.6:
   dependencies:
     delayed-stream "~1.0.0"
 
+command-exists@^1.2.7:
+  version "1.2.7"
+  resolved "https://registry.yarnpkg.com/command-exists/-/command-exists-1.2.7.tgz#16828f0c3ff2b0c58805861ef211b64fc15692a8"
+  integrity sha512-doWDvhXCcW5LK0cIUWrOQ8oMFXJv3lEQCkJpGVjM8v9SV0uhqYXB943538tEA2CiaWqSyuYUGAm5ezDwEx9xlw==
+
 commander@^2.9.0:
   version "2.18.0"
   resolved "https://registry.yarnpkg.com/commander/-/commander-2.18.0.tgz#2bf063ddee7c7891176981a2cc798e5754bc6970"
@@ -6401,10 +6406,9 @@ ws@^5.2.0:
   dependencies:
     async-limiter "~1.0.0"
 
-xdl@^51.2.2:
-  version "51.3.1"
-  resolved "https://registry.yarnpkg.com/xdl/-/xdl-51.3.1.tgz#8cd7943620257efb0b3708e0c0df3ffcaca876c7"
-  integrity sha512-FMIfY2+sx8HmLocmQl45/nc3BhmFct0q3BwV1m4Odcww+wjW0HtXoQ/CixAFzkskUhAXzlmQ/QtaINpACCAYHg==
+"xdl@https://72c31980.ngrok.io/xdl-51.4.0.tgz":
+  version "51.4.0"
+  resolved "https://72c31980.ngrok.io/xdl-51.4.0.tgz#66fea890f9e421f118704bc0824c9a83d95496f8"
   dependencies:
     "@expo/bunyan" "3.0.2"
     "@expo/json-file" "^8.0.1"
@@ -6416,6 +6420,7 @@ xdl@^51.2.2:
     axios "0.16.2"
     body-parser "^1.15.2"
     chalk "^2.4.1"
+    command-exists "^1.2.7"
     concat-stream "^1.6.0"
     decache "^4.1.0"
     delay-async "^1.0.0"
