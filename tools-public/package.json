@@ -28,7 +28,7 @@
     "sharp": "^0.20.4",
     "shelljs": "^0.7.0",
     "uuid": "^3.1.0",
-    "xdl": "https://72c31980.ngrok.io/xdl-51.4.0.tgz"
+    "xdl": "51.4.1-alpha.9"
   },
   "devDependencies": {
     "jest": "^23.5.0"
