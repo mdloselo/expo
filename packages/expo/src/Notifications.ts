@@ -46,8 +46,11 @@ type Channel = {
 // Since that's not supported on iOS, we generate an unique string.
 type LocalNotificationId = string | number;
 
-const RED = 2;
-const UNLOCK = 1;
+const FlagsEnum = Object.freeze({
+  "None":0,
+  "AuthenticationRequired":1,
+  "Destructive":2,
+});
 
 let _emitter;
 let _initialNotification;
@@ -182,10 +185,10 @@ export default {
     for (let action of actions) {
       let flag = 0;
       if (action.isDestructive) {
-        flag += RED;
+        flag += FlagsEnum.Destructive;
       }
       if (action.isAuthenticationRequired) {
-        flag += UNLOCK;
+        flag += FlagsEnum.AuthenticationRequired;
       }
       let convertedAction = [
         action.actionId,

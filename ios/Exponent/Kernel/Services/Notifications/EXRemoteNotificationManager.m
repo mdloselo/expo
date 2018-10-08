@@ -101,7 +101,7 @@ typedef void(^EXRemoteNotificationAPNSTokenHandler)(NSData * _Nullable apnsToken
   __weak id weakScopedModule = scopedModule;
   dispatch_async(_queue, ^{
 
-    [self _canRegisterForRemoteNotificationsWithHandler:^(BOOL can) {
+    [self _canRegisterForRemoteNotificationsWithCompletionHandler:^(BOOL can) {
         if (!can) {
           NSError *error = [NSError errorWithDomain:kEXRemoteNotificationErrorDomain
                                                code:EXRemoteNotificationErrorCodePermissionNotGranted
@@ -196,13 +196,12 @@ typedef void(^EXRemoteNotificationAPNSTokenHandler)(NSData * _Nullable apnsToken
   }];
 }
 
-- (void)_canRegisterForRemoteNotificationsWithHandler:(void (^)(BOOL can))handler
+- (void)_canRegisterForRemoteNotificationsWithCompletionHandler:(void (^)(BOOL can))handler
 {
   dispatch_assert_queue(_queue);
 
   // When the user has not granted permission to display any type of notification, iOS doesn't
   // invoke the delegate methods and registering for remote notifications will never complete
-  dispatch_assert_queue(dispatch_get_main_queue());
   [[EXUserNotificationCenter sharedInstance] getNotificationSettingsWithCompletionHandler:^(UNNotificationSettings * _Nonnull settings) {
     handler(settings.authorizationStatus == UNAuthorizationStatusAuthorized);
   }];

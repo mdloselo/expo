@@ -135,16 +135,16 @@ RCT_EXPORT_METHOD(addCategory: (NSString *)categoryId
   UNNotificationCategory * newCategory = [UNNotificationCategory categoryWithIdentifier:categoryId actions:actionsArray intentIdentifiers:@[] options:UNNotificationCategoryOptionNone];
   
   [[EXUserNotificationCenter sharedInstance] getNotificationCategoriesWithCompletionHandler:^(NSSet * categories) {
-    NSMutableSet * categoriesMutable = [categories mutableCopy];
-    for( UNNotificationCategory * category in categoriesMutable) {
+    NSMutableSet * newCategories = [categories mutableCopy];
+    for( UNNotificationCategory * category in newCategories) {
       if ([category.identifier isEqualToString:categoryId]) {
-        [categoriesMutable removeObject:category];
+        [newCategories removeObject:category];
         break;
       }
     }
-    [categoriesMutable addObject:newCategory];
-    [[EXUserNotificationCenter sharedInstance] setNotificationCategories:categoriesMutable];
-    resolve(@(YES));
+    [newCategories addObject:newCategory];
+    [[EXUserNotificationCenter sharedInstance] setNotificationCategories:newCategories];
+    resolve(nil);
   }];
 }
 
@@ -160,8 +160,8 @@ RCT_EXPORT_METHOD(scheduleLocalNotification:(NSDictionary *)payload
   UNMutableNotificationContent* content = [self _localNotificationFromPayload:payload];
   
   NSDateComponents * date = [[NSDateComponents alloc] init];
-  NSArray * unites = @[@"day", @"month", @"year", @"weekday", @"quarter", @"leapMonth", @"nanosecond", @"era", @"weekdayOrdinal", @"weekOfMonth", @"weekOfYear", @"hour", @"second", @"minute", @"yearForWeekOfYear"];
-  for( NSString * unit in unites) {
+  NSArray * units = @[@"day", @"month", @"year", @"weekday", @"quarter", @"leapMonth", @"nanosecond", @"era", @"weekdayOrdinal", @"weekOfMonth", @"weekOfYear", @"hour", @"second", @"minute", @"yearForWeekOfYear"];
+  for( NSString * unit in units) {
     if (options[unit]) {
       [date setValue:(NSNumber *)options[unit] forKey:unit];
     }

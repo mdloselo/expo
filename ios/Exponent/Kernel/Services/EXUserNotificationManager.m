@@ -84,7 +84,7 @@ didReceiveNotificationResponse:(UNNotificationResponse *)response
   [UNUserNotificationCenter currentNotificationCenter].delegate = self;
   
   UNAuthorizationOptions options = UNAuthorizationOptionAlert + UNAuthorizationOptionSound;
-  [[UNUserNotificationCenter currentNotificationCenter] requestAuthorizationWithOptions:options
+  [[EXUserNotificationCenter sharedInstance] requestAuthorizationWithOptions:options
     completionHandler:^(BOOL granted, NSError * _Nullable error) {
       if (!granted) {
       }

@@ -29,6 +29,12 @@ static dispatch_queue_t queue;
   return theCenter;
 }
 
+- (void)requestAuthorizationWithOptions:(UNAuthorizationOptions)options completionHandler:(void (^)(BOOL granted, NSError *__nullable error))completionHandler {
+  dispatch_async(queue, ^(void){ [[UNUserNotificationCenter currentNotificationCenter] requestAuthorizationWithOptions:options completionHandler:
+    completionHandler];
+  });
+}
+
 - (void)setNotificationCategories:(NSSet<UNNotificationCategory *> *)categories __TVOS_PROHIBITED {
   dispatch_async(queue, ^(void){ [[UNUserNotificationCenter currentNotificationCenter] setNotificationCategories:categories]; });
 }

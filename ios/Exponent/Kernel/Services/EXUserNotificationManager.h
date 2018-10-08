@@ -2,6 +2,7 @@
 
 #import <Foundation/Foundation.h>
 #import <UserNotifications/UserNotifications.h>
+#import "EXUserNotificationCenter.h"
 
 @interface EXUserNotificationManager : NSObject <UNUserNotificationCenterDelegate>
 

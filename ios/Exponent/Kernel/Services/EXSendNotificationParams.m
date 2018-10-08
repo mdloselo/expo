@@ -11,7 +11,7 @@
 @implementation EXSendNotificationParams
 
 - (instancetype)initWithExpId:(NSString *)expId
-   notificationBody: (NSDictionary *)dic
+   notificationBody: (NSDictionary *)body
            isRemote: (NSNumber *) isRemote
    isFromBackground: (NSNumber *)isFromBackground
            actionId: (NSString *)actionId
@@ -20,7 +20,7 @@
     _isRemote = isRemote;
     _isFromBackground = isFromBackground;
     _experienceId = expId;
-    _dic = dic;
+    _body = body;
     _actionId = actionId;
     _userText = userText;
     return self;

@@ -9,13 +9,13 @@
 #import "EXKernelAppRecord.h"
 #import "EXKernelLinkingManager.h"
 #import "EXLinkingManager.h"
+#import "EXSendNotificationParams.h"
 #import "EXVersions.h"
 
 #import <React/RCTBridge+Private.h>
 #import <React/RCTEventDispatcher.h>
 #import <React/RCTModuleData.h>
 #import <React/RCTUtils.h>
-#import "EXSendNotificationParams.h"
 
 NS_ASSUME_NONNULL_BEGIN
 
@@ -144,8 +144,10 @@ const NSUInteger kEXErrorCodeAppForbidden = 424242;
 
 - (void)flushPendingNotifications
 {
-  if (_pendingNotificationParams == nil) return;
-  [self sendNotification:_pendingNotificationParams.dic
+  if (_pendingNotificationParams == nil) {
+    return;
+  }
+  [self sendNotification:_pendingNotificationParams.body
        toExperienceWithId:_pendingNotificationParams.experienceId
            fromBackground:_pendingNotificationParams.isFromBackground
                  isRemote:_pendingNotificationParams.isRemote
