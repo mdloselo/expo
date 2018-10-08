@@ -98,7 +98,7 @@ RCT_EXPORT_METHOD(presentLocalNotification:(NSDictionary *)payload
   [EXUtil performSynchronouslyOnMainThread:^{
     UNNotificationRequest* request = [UNNotificationRequest
                                       requestWithIdentifier:content.userInfo[@"id"] content:content trigger:nil];
-    [[UNUserNotificationCenter currentNotificationCenter] addNotificationRequest:request withCompletionHandler:^(NSError * _Nullable error) {
+    [[EXUserNotificationCenter sharedInstance] addNotificationRequest:request withCompletionHandler:^(NSError * _Nullable error) {
       if (error != nil) {
         reject(@"E_NOTIF", [NSString stringWithFormat:@"Could not add a notification request: %@", error.localizedDescription], error);
       } else {
@@ -134,7 +134,7 @@ RCT_EXPORT_METHOD(addCategory: (NSString *)categoryId
   
   UNNotificationCategory * newCategory = [UNNotificationCategory categoryWithIdentifier:categoryId actions:actionsArray intentIdentifiers:@[] options:UNNotificationCategoryOptionNone];
   
-  [[UNUserNotificationCenter currentNotificationCenter] getNotificationCategoriesWithCompletionHandler:^(NSSet * categories) {
+  [[EXUserNotificationCenter sharedInstance] getNotificationCategoriesWithCompletionHandler:^(NSSet * categories) {
     NSMutableSet * categoriesMutable = [categories mutableCopy];
     for( UNNotificationCategory * category in categoriesMutable) {
       if ([category.identifier isEqualToString:categoryId]) {
@@ -143,7 +143,7 @@ RCT_EXPORT_METHOD(addCategory: (NSString *)categoryId
       }
     }
     [categoriesMutable addObject:newCategory];
-    [[UNUserNotificationCenter currentNotificationCenter] setNotificationCategories:categoriesMutable];
+    [[EXUserNotificationCenter sharedInstance] setNotificationCategories:categoriesMutable];
     resolve(@(YES));
   }];
 }
@@ -169,7 +169,7 @@ RCT_EXPORT_METHOD(scheduleLocalNotification:(NSDictionary *)payload
   UNCalendarNotificationTrigger* trigger = [UNCalendarNotificationTrigger triggerWithDateMatchingComponents:date repeats:repeats];
   UNNotificationRequest* request = [UNNotificationRequest
                                     requestWithIdentifier:content.userInfo[@"id"] content:content trigger:trigger];
-  [[UNUserNotificationCenter currentNotificationCenter] addNotificationRequest:request withCompletionHandler:^(NSError * _Nullable error) {
+  [[EXUserNotificationCenter sharedInstance] addNotificationRequest:request withCompletionHandler:^(NSError * _Nullable error) {
     if (error != nil) {
       NSLog(@"%@", error.localizedDescription);
       reject(@"Could not make notification request", error.localizedDescription, error);
@@ -196,7 +196,7 @@ RCT_EXPORT_METHOD(scheduleLocalNotificationWithTimeInterval:(NSDictionary *)payl
                                                                                                     repeats:repeats];
     UNNotificationRequest* request = [UNNotificationRequest
                                       requestWithIdentifier:content.userInfo[@"id"] content:content trigger:trigger];
-    [[UNUserNotificationCenter currentNotificationCenter] addNotificationRequest:request withCompletionHandler:^(NSError * _Nullable error) {
+    [[EXUserNotificationCenter sharedInstance] addNotificationRequest:request withCompletionHandler:^(NSError * _Nullable error) {
       if (error != nil) {
         NSLog(@"%@", error.localizedDescription);
         reject(@"Could not make notification request", error.localizedDescription, error);
@@ -210,7 +210,7 @@ RCT_EXPORT_METHOD(scheduleLocalNotificationWithTimeInterval:(NSDictionary *)payl
 RCT_EXPORT_METHOD(cancelScheduledNotification:(NSString *)uniqueId)
 {
   [EXUtil performSynchronouslyOnMainThread:^{
-    [[UNUserNotificationCenter currentNotificationCenter] removePendingNotificationRequestsWithIdentifiers:@[uniqueId]];
+    [[EXUserNotificationCenter sharedInstance] removePendingNotificationRequestsWithIdentifiers:@[uniqueId]];
   }];
 }
 
@@ -225,11 +225,11 @@ RCT_REMAP_METHOD(cancelAllScheduledNotificationsAsync,
                  cancelAllScheduledNotificationsAsyncWithResolver:(RCTPromiseResolveBlock)resolve
                  rejecter:(__unused RCTPromiseRejectBlock)reject)
 {
-  [[UNUserNotificationCenter currentNotificationCenter] getPendingNotificationRequestsWithCompletionHandler:
+  [[EXUserNotificationCenter sharedInstance] getPendingNotificationRequestsWithCompletionHandler:
     ^(NSArray<UNNotificationRequest *> * _Nonnull __strong requests){
       for (UNNotificationRequest * request in requests) {
         if ([request.content.userInfo[@"experienceId"] isEqualToString:self.experienceId]) {
-          [[UNUserNotificationCenter currentNotificationCenter] removePendingNotificationRequestsWithIdentifiers:@[request.content.userInfo[@"id"]]];
+          [[EXUserNotificationCenter sharedInstance] removePendingNotificationRequestsWithIdentifiers:@[request.content.userInfo[@"id"]]];
         }
       }
     }];

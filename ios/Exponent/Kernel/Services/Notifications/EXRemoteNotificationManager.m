@@ -203,7 +203,7 @@ typedef void(^EXRemoteNotificationAPNSTokenHandler)(NSData * _Nullable apnsToken
   // When the user has not granted permission to display any type of notification, iOS doesn't
   // invoke the delegate methods and registering for remote notifications will never complete
   dispatch_assert_queue(dispatch_get_main_queue());
-  [[UNUserNotificationCenter currentNotificationCenter] getNotificationSettingsWithCompletionHandler:^(UNNotificationSettings * _Nonnull settings) {
+  [[EXUserNotificationCenter sharedInstance] getNotificationSettingsWithCompletionHandler:^(UNNotificationSettings * _Nonnull settings) {
     handler(settings.authorizationStatus == UNAuthorizationStatusAuthorized);
   }];
 }
