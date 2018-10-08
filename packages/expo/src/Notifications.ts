@@ -296,9 +296,6 @@ export default {
       intervalMs?: number;
     } = {}
   ): Promise<LocalNotificationId> {
-    if(Platform.OS === "ios") {
-     throw new Error("This function is deprecated for ios");
-    }
     // set now at the beginning of the method, to prevent potential weird warnings when we validate
     // options.time later on
     const now = Date.now();
@@ -332,6 +329,24 @@ export default {
         timeAsDateObj.getTime() >= now,
         `Provided value for "time" is before the current date. Did you possibly pass number of seconds since Unix Epoch instead of number of milliseconds?`
       );
+
+      if (Platform.OS === "ios" ) {
+        warning(
+          options.repeat == undefined,
+          'This function is deprecated for ios with repeat option'
+        );
+        return this.scheduleLocalNotificationWithMatchAsync(
+            notification,
+            {
+              second: timeAsDateObj.getSeconds(),
+              minute: timeAsDateObj.getMinutes(),
+              hour: timeAsDateObj.getHours(),
+              day: timeAsDateObj.getUTCDate();,
+              month: timeAsDateObj.getUTCMonth() + 1,
+              year: timeAsDateObj.getFullYear(),
+            }
+          );
+      }
 
       options = {
         ...options,

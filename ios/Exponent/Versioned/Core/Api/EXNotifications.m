@@ -162,20 +162,20 @@ RCT_EXPORT_METHOD(scheduleLocalNotification:(NSDictionary *)payload
   NSDateComponents * date = [[NSDateComponents alloc] init];
   NSArray * unites = @[@"day", @"month", @"year", @"weekday", @"quarter", @"leapMonth", @"nanosecond", @"era", @"weekdayOrdinal", @"weekOfMonth", @"weekOfYear", @"hour", @"second", @"minute", @"yearForWeekOfYear"];
   for( NSString * unit in unites) {
-    if (options[unit]) [date setValue:(NSNumber *)options[unit] forKey:unit];
+    if (options[unit]) {
+      [date setValue:(NSNumber *)options[unit] forKey:unit];
+    }
   }
-  [EXUtil performSynchronouslyOnMainThread:^{
-    UNCalendarNotificationTrigger* trigger = [UNCalendarNotificationTrigger triggerWithDateMatchingComponents:date repeats:repeats];
-    UNNotificationRequest* request = [UNNotificationRequest
-                                      requestWithIdentifier:content.userInfo[@"id"] content:content trigger:trigger];
-    [[UNUserNotificationCenter currentNotificationCenter] addNotificationRequest:request withCompletionHandler:^(NSError * _Nullable error) {
-      if (error != nil) {
-        NSLog(@"%@", error.localizedDescription);
-        reject(@"Could not make notification request", error.localizedDescription, error);
-      } else {
-        resolve(content.userInfo[@"id"]);
-      }
-    }];
+  UNCalendarNotificationTrigger* trigger = [UNCalendarNotificationTrigger triggerWithDateMatchingComponents:date repeats:repeats];
+  UNNotificationRequest* request = [UNNotificationRequest
+                                    requestWithIdentifier:content.userInfo[@"id"] content:content trigger:trigger];
+  [[UNUserNotificationCenter currentNotificationCenter] addNotificationRequest:request withCompletionHandler:^(NSError * _Nullable error) {
+    if (error != nil) {
+      NSLog(@"%@", error.localizedDescription);
+      reject(@"Could not make notification request", error.localizedDescription, error);
+    } else {
+      resolve(content.userInfo[@"id"]);
+    }
   }];
 }
 

@@ -1,6 +1,7 @@
 import React from 'react';
 import { Notifications } from 'expo';
 import { StyleSheet, Text, View, Button } from 'react-native';
+import registerForPushNotificationsAsync from '../api/registerForPushNotificationsAsync';
 
 export default class UserNotificationsScreen extends React.Component {
   static navigationOptions = {
@@ -66,8 +67,9 @@ export default class UserNotificationsScreen extends React.Component {
         data: { scheduledAt: new Date().getTime() },
       },
       {
-        hour: 15,
-        minute: 4,
+        hour: 7,
+        minute: 41,
+        second: 50
       }
     );
   };
@@ -93,14 +95,36 @@ export default class UserNotificationsScreen extends React.Component {
     Notifications.cancelAllScheduledNotificationsAsync();
   };
 
+  _pushNotification = () => {
+    registerForPushNotificationsAsync().done();
+  };
+
+  _legacyScheduling = () => {
+    Notifications.scheduleLocalNotificationAsync(
+      {
+        title: 'Here is a scheduled notifiation!',
+        body: 'This is the body',
+        data: {
+          hello: 'there',
+          future: 'self',
+        },
+      },
+      {
+        time: new Date().getTime() + 10000,
+      }
+    );
+  };
+
   render() {
     return (
       <View style={styles.container}>
         <Text>{this.state.gotNotification}</Text>
         <Text>notifications example</Text>
+        <Button onPress={this._pushNotification} title="push notification test" />
         <Button onPress={this._onButtonPress} title="trigger" />
         <Button onPress={this._schedule} title="schedule" />
         <Button onPress={this._waitTenSec} title="10 sec" />
+        <Button onPress={this._legacyScheduling} title="legacy scheduling" />
         <Button onPress={this._cancelWithId} title="cancel" />
         <Button onPress={this._cancelAll} title="cancel all" />
         <Text> ExpoPushToken: {this.state.expoPushToken} </Text>
