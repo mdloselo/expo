@@ -344,7 +344,7 @@ export default {
               second: timeAsDateObj.getSeconds(),
               minute: timeAsDateObj.getMinutes(),
               hour: timeAsDateObj.getHours(),
-              day: timeAsDateObj.getUTCDate();,
+              day: timeAsDateObj.getUTCDate(),
               month: timeAsDateObj.getUTCMonth() + 1,
               year: timeAsDateObj.getFullYear(),
             }

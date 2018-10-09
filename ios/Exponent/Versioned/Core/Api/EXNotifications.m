@@ -31,6 +31,7 @@ RCT_ENUM_CONVERTER(NSCalendarUnit,
 
 // unversioned EXRemoteNotificationManager instance
 @property (nonatomic, weak) id <EXNotificationsScopedModuleDelegate> kernelNotificationsDelegate;
+@property (nonatomic, strong) NSString * expId;
 
 @end
 
@@ -49,6 +50,7 @@ EX_EXPORT_SCOPED_MODULE(ExponentNotifications, RemoteNotificationManager);
 {
   if (self = [super initWithExperienceId:experienceId kernelServiceDelegate:kernelServiceInstance params:params]) {
     _kernelNotificationsDelegate = kernelServiceInstance;
+    _expId = experienceId;
   }
   return self;
 }

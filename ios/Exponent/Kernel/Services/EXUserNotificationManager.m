@@ -85,10 +85,7 @@ didReceiveNotificationResponse:(UNNotificationResponse *)response
   
   UNAuthorizationOptions options = UNAuthorizationOptionAlert + UNAuthorizationOptionSound;
   [[EXUserNotificationCenter sharedInstance] requestAuthorizationWithOptions:options
-    completionHandler:^(BOOL granted, NSError * _Nullable error) {
-      if (!granted) {
-      }
-    }
+    completionHandler:^(BOOL granted, NSError * _Nullable error) {}
   ];
 }
 
