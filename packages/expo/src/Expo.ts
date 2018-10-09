@@ -146,7 +146,7 @@ module.exports = {
     return require('./Amplitude').default;
   },
   get AR() {
-    return require('./AR');
+    return require('expo-ar').AR;
   },
   get Audio() {
     return require('./av/Audio');
