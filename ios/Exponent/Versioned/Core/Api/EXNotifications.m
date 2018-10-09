@@ -4,6 +4,7 @@
 #import "EXModuleRegistryBinding.h"
 #import "EXUnversioned.h"
 #import "EXUtil.h"
+#import "EXEnvironment.h"
 
 #import <React/RCTUtils.h>
 #import <React/RCTConvert.h>
@@ -116,12 +117,28 @@ RCT_EXPORT_METHOD(addCategory: (NSString *)categoryId
                   resolver:(RCTPromiseResolveBlock)resolve
                   rejecter:(__unused RCTPromiseRejectBlock)reject)
 {
+  if (![EXEnvironment sharedEnvironment].isDetached) {
+    categoryId = [self prefixWithExperience:categoryId];
+
+    for (id action in actions) {
+      action[0] = [self prefixWithExperience:action[0]];
+    }
+  }
+
   NSMutableArray<UNNotificationAction *> * actionsArray = [[NSMutableArray alloc] init];
   
   for(NSArray *action in actions) {
     int optionsInt = [(NSNumber *)action[2] intValue];
     UNNotificationActionOptions options = UNNotificationActionOptionForeground + optionsInt;
-                                     
+
+    /*
+     action[0] actionId
+     action[1] buttonTitle
+     action[2] flags
+     action[3] buttonTitle on keyboard
+     action[4] default text in textInput
+     */
+
     if (([action count] == 5)) {
       UNTextInputNotificationAction * newAction = [UNTextInputNotificationAction actionWithIdentifier:action[0]
                                                                                                 title:action[1]
@@ -211,6 +228,10 @@ RCT_EXPORT_METHOD(scheduleLocalNotificationWithTimeInterval:(NSDictionary *)payl
 
 RCT_EXPORT_METHOD(cancelScheduledNotification:(NSString *)uniqueId)
 {
+  if (![EXEnvironment sharedEnvironment].isDetached) {
+    uniqueId = [self prefixWithExperience:uniqueId];
+  }
+
   [EXUtil performSynchronouslyOnMainThread:^{
     [[EXUserNotificationCenter sharedInstance] removePendingNotificationRequestsWithIdentifiers:@[uniqueId]];
   }];
@@ -282,7 +303,11 @@ RCT_EXPORT_METHOD(setBadgeNumberAsync:(nonnull NSNumber *)number
   }
   
   if (payload[@"categoryId"]) {
-    content.categoryIdentifier = payload[@"categoryId"];
+    if ([EXEnvironment sharedEnvironment].isDetached) {
+      content.categoryIdentifier = payload[@"categoryId"];
+    } else {
+      content.categoryIdentifier = [self prefixWithExperience:payload[@"categoryId"]];
+    }
   }
  
   content.userInfo = @{
@@ -292,6 +317,10 @@ RCT_EXPORT_METHOD(setBadgeNumberAsync:(nonnull NSNumber *)number
                        };
   
   return content;
+}
+
+-(NSString *) prefixWithExperience:(NSString *) identifier {
+  return [NSString stringWithFormat:@"%@%@%@", self.expId, @"@@@", identifier];
 }
 
 @end

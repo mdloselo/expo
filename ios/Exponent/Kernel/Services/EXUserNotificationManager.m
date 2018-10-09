@@ -3,6 +3,7 @@
 #import "EXUserNotificationManager.h"
 #import "EXKernel.h"
 #import "EXRemoteNotificationManager.h"
+#import "EXEnvironment.h"
 
 @interface EXUserNotificationManager()
 @end
@@ -37,6 +38,9 @@ didReceiveNotificationResponse:(UNNotificationResponse *)response
       actionId = @"DISMISS_ACTION";
     } else if (![response.actionIdentifier isEqualToString:UNNotificationDefaultActionIdentifier]) {
       actionId = response.actionIdentifier;
+      if (![EXEnvironment sharedEnvironment].isDetached) {
+        actionId = [actionId componentsSeparatedByString:@"@@@"][1];
+      }
     }
     
     if ([response isKindOfClass:[UNTextInputNotificationResponse class]]) {
