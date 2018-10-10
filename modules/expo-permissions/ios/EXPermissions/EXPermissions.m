@@ -8,7 +8,7 @@
 #import <EXPermissions/EXContactsRequester.h>
 #import <EXPermissions/EXLocationRequester.h>
 #import <EXPermissions/EXPermissions.h>
-#import <EXPermissions/EXLocalNotificationRequester.h>
+#import <EXPermissions/EXUserNotificationRequester.h>
 #import <EXPermissions/EXRemindersRequester.h>
 #import <EXPermissions/EXRemoteNotificationRequester.h>
 #import <EXPermissions/EXCameraRollRequester.h>
@@ -259,7 +259,7 @@ EX_EXPORT_METHOD_AS(askAsync,
   if ([type isEqualToString:@"notifications"]) {
     return [EXRemoteNotificationRequester permissions];
   } else if ([type isEqualToString:@"userFacingNotifications"]) {
-    return [EXLocalNotificationRequester permissions];
+    return [EXUserNotificationRequester permissions];
   } else if ([type isEqualToString:@"location"]) {
     return [EXLocationRequester permissions];
   } else if ([type isEqualToString:@"camera"]) {
@@ -381,7 +381,7 @@ EX_EXPORT_METHOD_AS(askAsync,
   if ([type isEqualToString:@"notifications"]) {
     return [[EXRemoteNotificationRequester alloc] init];
   } else if ([type isEqualToString:@"userFacingNotifications"]) {
-    return [[EXLocalNotificationRequester alloc] init];
+    return [[EXUserNotificationRequester alloc] init];
   } else if ([type isEqualToString:@"location"]) {
     return [[EXLocationRequester alloc] init];
   } else if ([type isEqualToString:@"camera"]) {

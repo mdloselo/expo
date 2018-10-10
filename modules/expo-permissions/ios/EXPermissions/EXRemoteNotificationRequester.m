@@ -1,7 +1,7 @@
 // Copyright 2016-present 650 Industries. All rights reserved.
 
 #import <EXPermissions/EXRemoteNotificationRequester.h>
-#import <EXPermissions/EXLocalNotificationRequester.h>
+#import <EXPermissions/EXUserNotificationRequester.h>
 
 NSString * const EXAppDidRegisterForRemoteNotificationsNotificationName = @"kEXAppDidRegisterForRemoteNotificationsNotification";
 
@@ -11,7 +11,7 @@ NSString * const EXAppDidRegisterForRemoteNotificationsNotificationName = @"kEXA
 @property (nonatomic, strong) EXPromiseRejectBlock reject;
 @property (nonatomic, weak) id<EXPermissionRequesterDelegate> delegate;
 @property (nonatomic, assign) BOOL remoteNotificationsRegistrationIsPending;
-@property (nonatomic, strong) EXLocalNotificationRequester *localNotificationRequester;
+@property (nonatomic, strong) EXUserNotificationRequester *localNotificationRequester;
 
 @end
 
@@ -29,7 +29,7 @@ NSString * const EXAppDidRegisterForRemoteNotificationsNotificationName = @"kEXA
   EXPermissionStatus status = (EXSharedApplication().isRegisteredForRemoteNotifications) ?
     EXPermissionStatusGranted :
     EXPermissionStatusUndetermined;
-  NSMutableDictionary *permissions = [[EXLocalNotificationRequester permissions] mutableCopy];
+  NSMutableDictionary *permissions = [[EXUserNotificationRequester permissions] mutableCopy];
   [permissions setValuesForKeysWithDictionary:@{
                                                 @"status": [EXPermissions permissionStringForStatus:status],
                                                 @"expires": EXPermissionExpiresNever,
@@ -55,7 +55,7 @@ NSString * const EXAppDidRegisterForRemoteNotificationsNotificationName = @"kEXA
                                              selector:@selector(_handleDidRegisterForRemoteNotifications:)
                                                  name:EXAppDidRegisterForRemoteNotificationsNotificationName
                                                object:nil];
-    _localNotificationRequester = [[EXLocalNotificationRequester alloc] init];
+    _localNotificationRequester = [[EXUserNotificationRequester alloc] init];
     [_localNotificationRequester setDelegate:self];
     [_localNotificationRequester requestPermissionsWithResolver:nil rejecter:nil];
     _remoteNotificationsRegistrationIsPending = YES;
@@ -105,7 +105,7 @@ NSString * const EXAppDidRegisterForRemoteNotificationsNotificationName = @"kEXA
 {
   if (requester == _localNotificationRequester) {
     _localNotificationRequester = nil;
-    NSString *localNotificationsStatus = [[EXLocalNotificationRequester permissions] objectForKey:@"status"];
+    NSString *localNotificationsStatus = [[EXUserNotificationRequester permissions] objectForKey:@"status"];
     // We may assume that `EXLocalNotificationRequester`'s permission request will always finish
     // when the user responds to the dialog or has already responded in the past.
     // However, `UIApplication.registerForRemoteNotification` results in calling

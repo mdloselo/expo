@@ -1,5 +1,5 @@
 import React from 'react';
-import { Notifications } from 'expo';
+import { Notifications, Permissions } from 'expo';
 import { StyleSheet, Text, View, Button } from 'react-native';
 import registerForPushNotificationsAsync from '../api/registerForPushNotificationsAsync';
 
@@ -12,9 +12,12 @@ export default class UserNotificationsScreen extends React.Component {
     gotNotification: false,
     expoPushToken: null,
     receivedEvent: null,
+    permissions: null,
   };
 
   async componentWillMount() {
+    await Permissions.askAsync(Permissions.USER_FACING_NOTIFICATIONS);
+
     const action = {
       actionId: 'touch_action',
       buttonTitle: 'touch',
@@ -69,7 +72,7 @@ export default class UserNotificationsScreen extends React.Component {
       {
         hour: 7,
         minute: 41,
-        second: 50
+        second: 50,
       }
     );
   };
@@ -115,6 +118,11 @@ export default class UserNotificationsScreen extends React.Component {
     );
   };
 
+  _getPermissions = async () => {
+    const status = await Permissions.getAsync(Permissions.USER_FACING_NOTIFICATIONS);
+    this.setState({ permissions: JSON.stringify(status) });
+  };
+
   render() {
     return (
       <View style={styles.container}>
@@ -127,8 +135,10 @@ export default class UserNotificationsScreen extends React.Component {
         <Button onPress={this._legacyScheduling} title="legacy scheduling" />
         <Button onPress={this._cancelWithId} title="cancel" />
         <Button onPress={this._cancelAll} title="cancel all" />
+        <Button onPress={this._getPermissions} title="get permissions" />
         <Text> ExpoPushToken: {this.state.expoPushToken} </Text>
-        <Text> {this.state.receivedEvent} </Text>
+        <Text> eventData: {this.state.receivedEvent} </Text>
+        <Text> permissionsStatus: {this.state.permissions} </Text>
       </View>
     );
   }

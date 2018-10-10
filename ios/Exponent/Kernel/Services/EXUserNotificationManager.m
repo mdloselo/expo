@@ -83,14 +83,9 @@ didReceiveNotificationResponse:(UNNotificationResponse *)response
   completionHandler(UNNotificationPresentationOptionAlert + UNNotificationPresentationOptionSound);
 }
 
-- (void)authorizeAndInit: (NSDictionary *) launchOptions
+- (void)setNotificationDelegate
 {
   [UNUserNotificationCenter currentNotificationCenter].delegate = self;
-  
-  UNAuthorizationOptions options = UNAuthorizationOptionAlert + UNAuthorizationOptionSound;
-  [[EXUserNotificationCenter sharedInstance] requestAuthorizationWithOptions:options
-    completionHandler:^(BOOL granted, NSError * _Nullable error) {}
-  ];
 }
 
 @end
