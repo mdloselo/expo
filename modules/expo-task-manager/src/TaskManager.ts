@@ -1,13 +1,27 @@
-// @flow
 import { NativeModulesProxy, EventEmitter } from 'expo-core';
+
+interface TaskBody {
+  data: object,
+  error: Error | null,
+  executionInfo: {
+    eventId: string,
+    taskName: string,
+  },
+}
+
+type Task = (body: TaskBody) => void;
 
 const { ExpoTaskManager: TaskManager } = NativeModulesProxy;
 const eventEmitter = new EventEmitter(TaskManager);
-const tasks = new Map();
+const tasks: Map<string, Task> = new Map<string, Task>();
 
 let isRunningInGlobalScope = true;
 
-type Task = (data: ?object, error: ?object) => void;
+function _validateTaskName(taskName) {
+  if (!taskName || typeof taskName !== 'string') {
+    throw new TypeError('`taskName` must be a non-empty string.')
+  }
+}
 
 export function defineTask(taskName: string, task: Task) {
   if (!isRunningInGlobalScope) {
@@ -29,26 +43,32 @@ export function defineTask(taskName: string, task: Task) {
   tasks.set(taskName, task);
 }
 
-export function isTaskDefined(taskName: string) {
+export function isTaskDefined(taskName: string): boolean {
   return tasks.has(taskName);
 }
 
-export async function isTaskRegisteredAsync(taskName: string) {
+export async function isTaskRegisteredAsync(taskName: string): Promise<boolean> {
+  _validateTaskName(taskName);
   return TaskManager.isTaskRegisteredAsync(taskName);
 }
 
-export async function getRegisteredTasksAsync() {
+export async function getRegisteredTasksAsync(): Promise<object> {
   return TaskManager.getRegisteredTasksAsync();
 }
 
-export async function unregisterAllTasksAsync() {
+export async function unregisterTaskAsync(taskName: string): Promise<null> {
+  _validateTaskName(taskName);
+  return TaskManager.unregisterTaskAsync(taskName);
+}
+
+export async function unregisterAllTasksAsync(): Promise<null> {
   return TaskManager.unregisterAllTasksAsync();
 }
 
 eventEmitter.addListener(TaskManager.EVENT_NAME, async ({ data, error, executionInfo }) => {
   const { eventId, taskName } = executionInfo;
   const task = tasks.get(taskName);
-  let result = null;
+  let result: any = null;
 
   if (task) {
     try {

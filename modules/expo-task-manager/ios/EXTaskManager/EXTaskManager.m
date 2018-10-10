@@ -36,7 +36,6 @@ EX_EXPORT_MODULE(ExpoTaskManager);
 
 - (instancetype)initWithExperienceId:(NSString *)experienceId
 {
-  NSLog(@"EXTaskManager.init: %@", experienceId);
   if (self = [super init]) {
     _appId = experienceId;
     _eventsQueue = [NSMutableArray new];
@@ -45,22 +44,14 @@ EX_EXPORT_MODULE(ExpoTaskManager);
   return self;
 }
 
-- (void)dealloc
-{
-  NSLog(@"EXTaskManager.dealloc");
-  [_taskService setTaskManager:nil forAppId:_appId];
-}
-
 - (void)setModuleRegistry:(EXModuleRegistry *)moduleRegistry
 {
   _eventEmitter = [moduleRegistry getModuleImplementingProtocol:@protocol(EXEventEmitterService)];
   _constantsService = [moduleRegistry getModuleImplementingProtocol:@protocol(EXConstantsInterface)];
   _taskService = [moduleRegistry getSingletonModuleForName:@"TaskService"];
 
-  // Try to restore tasks registered in the previous sessions.
-  NSLog(@"EXTaskManager.setModuleRegistry");
+  // Register task manager in task service.
   [_taskService setTaskManager:self forAppId:_appId];
-//  [self _tryRestoringTasks];
 }
 
 - (NSDictionary *)constantsToExport
