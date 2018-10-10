@@ -32,7 +32,6 @@ RCT_ENUM_CONVERTER(NSCalendarUnit,
 
 // unversioned EXRemoteNotificationManager instance
 @property (nonatomic, weak) id <EXNotificationsScopedModuleDelegate> kernelNotificationsDelegate;
-@property (nonatomic, strong) NSString * expId;
 
 @end
 
@@ -51,7 +50,6 @@ EX_EXPORT_SCOPED_MODULE(ExponentNotifications, RemoteNotificationManager);
 {
   if (self = [super initWithExperienceId:experienceId kernelServiceDelegate:kernelServiceInstance params:params]) {
     _kernelNotificationsDelegate = kernelServiceInstance;
-    _expId = experienceId;
   }
   return self;
 }
@@ -117,12 +115,10 @@ RCT_EXPORT_METHOD(addCategory: (NSString *)categoryId
                   resolver:(RCTPromiseResolveBlock)resolve
                   rejecter:(__unused RCTPromiseRejectBlock)reject)
 {
-  if (![EXEnvironment sharedEnvironment].isDetached) {
-    categoryId = [self prefixWithExperience:categoryId];
+  categoryId = [self getScopedIdIfDetached:categoryId];
 
-    for (id action in actions) {
-      action[0] = [self prefixWithExperience:action[0]];
-    }
+  for (id action in actions) {
+    action[0] = [self getScopedIdIfDetached:action[0]];
   }
 
   NSMutableArray<UNNotificationAction *> * actionsArray = [[NSMutableArray alloc] init];
@@ -228,9 +224,7 @@ RCT_EXPORT_METHOD(scheduleLocalNotificationWithTimeInterval:(NSDictionary *)payl
 
 RCT_EXPORT_METHOD(cancelScheduledNotification:(NSString *)uniqueId)
 {
-  if (![EXEnvironment sharedEnvironment].isDetached) {
-    uniqueId = [self prefixWithExperience:uniqueId];
-  }
+  uniqueId = [self getScopedIdIfDetached:uniqueId];
 
   [EXUtil performSynchronouslyOnMainThread:^{
     [[EXUserNotificationCenter sharedInstance] removePendingNotificationRequestsWithIdentifiers:@[uniqueId]];
@@ -303,11 +297,7 @@ RCT_EXPORT_METHOD(setBadgeNumberAsync:(nonnull NSNumber *)number
   }
   
   if (payload[@"categoryId"]) {
-    if ([EXEnvironment sharedEnvironment].isDetached) {
-      content.categoryIdentifier = payload[@"categoryId"];
-    } else {
-      content.categoryIdentifier = [self prefixWithExperience:payload[@"categoryId"]];
-    }
+      content.categoryIdentifier = [self getScopedIdIfDetached:payload[@"categoryId"]];
   }
  
   content.userInfo = @{
@@ -319,8 +309,11 @@ RCT_EXPORT_METHOD(setBadgeNumberAsync:(nonnull NSNumber *)number
   return content;
 }
 
--(NSString *) prefixWithExperience:(NSString *) identifier {
-  return [NSString stringWithFormat:@"%@%@%@", self.expId, @"@@@", identifier];
+-(NSString *) getScopedIdIfDetached:(NSString *) identifier {
+  if ([EXEnvironment sharedEnvironment].isDetached) {
+    return identifier;
+  }
+  return [NSString stringWithFormat:@"%@%@%@", self.experienceId, @":", identifier];
 }
 
 @end

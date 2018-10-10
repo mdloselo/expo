@@ -39,7 +39,7 @@ didReceiveNotificationResponse:(UNNotificationResponse *)response
     } else if (![response.actionIdentifier isEqualToString:UNNotificationDefaultActionIdentifier]) {
       actionId = response.actionIdentifier;
       if (![EXEnvironment sharedEnvironment].isDetached) {
-        actionId = [actionId componentsSeparatedByString:@"@@@"][1];
+        actionId = [actionId componentsSeparatedByString:@":"][1];
       }
     }
     
