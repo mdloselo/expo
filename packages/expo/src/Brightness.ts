@@ -1,5 +1,11 @@
 import { NativeModules, Platform } from 'react-native';
 
+export enum BrightnessMode {
+  UNKNOWN = 0,
+  AUTOMATIC = 1,
+  MANUAL = 2,
+};
+
 export async function getBrightnessAsync(): Promise<number> {
   return await NativeModules.ExponentBrightness.getBrightnessAsync();
 }
@@ -22,5 +28,29 @@ export async function setSystemBrightnessAsync(brightnessValue: number): Promise
     return await setBrightnessAsync(brightnessValue);
   } else {
     return await NativeModules.ExponentBrightness.setSystemBrightnessAsync(brightnessValue);
+  }
+}
+
+export async function useSystemBrightnessAsync(): Promise<void> {
+  if (Platform.OS !== 'android') {
+    return;
+  } else {
+    return await NativeModules.ExponentBrightness.useSystemBrightnessAsync();
+  }
+}
+
+export async function getSystemBrightnessModeAsync(): Promise<BrightnessMode> {
+  if (Platform.OS !== 'android') {
+    return BrightnessMode.UNKNOWN;
+  } else {
+    return await NativeModules.ExponentBrightness.getSystemBrightnessAsync();
+  }
+}
+
+export async function setSystemBrightnessModeAsync(brightnessMode: BrightnessMode): Promise<void> {
+  if (Platform.OS !== 'android' || brightnessMode === BrightnessMode.UNKNOWN) {
+    return;
+  } else {
+    return await NativeModules.ExponentBrightness.setSystemBrightnessModeAsync(brightnessMode);
   }
 }
