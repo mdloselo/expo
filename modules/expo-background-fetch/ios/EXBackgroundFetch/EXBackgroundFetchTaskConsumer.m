@@ -12,10 +12,9 @@
 }
 
 // Associating task to the consumer.
-- (void)didReceiveTask:(id<EXTaskInterface>)task
+- (void)didRegisterTask:(id<EXTaskInterface>)task
 {
   _task = task;
-  NSLog(@"EXTaskManager: task consumer received task with name=%@", task.name);
 }
 
 // Method that is being called when the JS app just finished launching,

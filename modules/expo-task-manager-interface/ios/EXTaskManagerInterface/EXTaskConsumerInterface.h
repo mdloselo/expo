@@ -13,16 +13,16 @@
 @required
 
 /**
- *  Static method returning boolean value 
- */
-+ (BOOL)supportsLaunchReason:(EXTaskLaunchReason)launchReason;
-
-/**
  *  Called by EXTaskService when the task is created and associated with the consumer.
  */
-- (void)didReceiveTask:(id<EXTaskInterface>)task;
+- (void)didRegisterTask:(id<EXTaskInterface>)task;
 
 @optional
+
+/**
+ *  Static method returning boolean value whether the consumer supports launch reason.
+ */
++ (BOOL)supportsLaunchReason:(EXTaskLaunchReason)launchReason;
 
 /**
  *  Sets options for the task.
@@ -48,8 +48,5 @@
  *  Method used to normalize task result that comes from JS app.
  */
 - (id)normalizeTaskResult:(id)result;
-
-- (void)applicationWillResignActive;
-- (void)applicationDidBecomeActive;
 
 @end

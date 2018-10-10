@@ -15,23 +15,14 @@
 
 @implementation EXLocationTaskConsumer
 
-+ (BOOL)supportsLaunchReason:(EXTaskLaunchReason)launchReason
-{
-  return launchReason == EXTaskLaunchReasonLocation;
-}
-
 - (void)dealloc
 {
-  NSLog(@"EXLocationTaskConsumer.dealloc");
-  if (_locationManager != nil) {
-    [_locationManager stopMonitoringSignificantLocationChanges];
-    _locationManager = nil;
-  }
+  [self reset];
 }
 
 # pragma mark - EXTaskConsumerInterface
 
-- (void)didReceiveTask:(id<EXTaskInterface>)task
+- (void)didRegisterTask:(id<EXTaskInterface>)task
 {
   _task = task;
   _locationManager = [CLLocationManager new];
@@ -39,35 +30,25 @@
   _locationManager.delegate = self;
   _locationManager.allowsBackgroundLocationUpdates = YES;
   _locationManager.pausesLocationUpdatesAutomatically = NO;
-  _locationManager.desiredAccuracy = [task.options[@"enableHighAccuracy"] boolValue] ? kCLLocationAccuracyBest : kCLLocationAccuracyHundredMeters;
+  _locationManager.desiredAccuracy = [EXLocation accuracyFromString:task.options[@"accuracy"]];
 
   if (@available(iOS 11.0, *)) {
     _locationManager.showsBackgroundLocationIndicator = [[task.options objectForKey:@"showsBackgroundLocationIndicator"] boolValue];
   }
 
+  [_locationManager startUpdatingLocation];
   [_locationManager startMonitoringSignificantLocationChanges];
-  NSLog(@"EXLocation: registered task %@", task.name);
 }
 
 - (void)didUnregister
 {
-  [_locationManager stopMonitoringSignificantLocationChanges];
-  _locationManager = nil;
-  _task = nil;
-
-  NSLog(@"EXLocationTaskConsumer.didUnregister");
-}
-
-- (void)didFinishTask
-{
-  NSLog(@"EXLocationTaskConsumer.didFinishTask");
+  [self reset];
 }
 
 # pragma mark - CLLocationManagerDelegate
 
 - (void)locationManager:(CLLocationManager *)manager didUpdateLocations:(NSArray<CLLocation *> *)locations
 {
-  NSLog(@"EXLocationTaskConsumer.locationManager:didUpdateLocations");
   if (_task != nil) {
     NSDictionary *data = @{
                            @"locations": [EXLocationTaskConsumer _exportLocations:locations],
@@ -78,11 +59,18 @@
 
 - (void)locationManager:(CLLocationManager *)manager didFailWithError:(NSError *)error
 {
-  NSLog(@"EXLocationTaskConsumer: didFailWithError %@", error.description);
   [_task executeWithData:nil withError:error];
 }
 
 # pragma mark - internal
+
+- (void)reset
+{
+  [_locationManager stopUpdatingLocation];
+  [_locationManager stopMonitoringSignificantLocationChanges];
+  _locationManager = nil;
+  _task = nil;
+}
 
 + (NSArray<NSDictionary *> *)_exportLocations:(NSArray<CLLocation *> *)locations
 {

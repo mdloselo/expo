@@ -17,11 +17,6 @@
 - (BOOL)taskWithName:(nonnull NSString *)taskName hasConsumerOfClass:(Class)consumerClass;
 
 /**
- *  Returns task with given name if registered or 'nil' otherwise.
- */
-- (id<EXTaskInterface>)getTaskWithName:(nonnull NSString *)taskName;
-
-/**
  *  Updates task's options and notifies the consumer.
  *  Can throw an exception if there is no task with given name or its consumer class is incompatible.
  */

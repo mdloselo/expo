@@ -13,11 +13,20 @@ NSTimeInterval const EXAppLoaderDefaultTimeout = 10;
 
 @interface EXTaskService ()
 
-@property (nonatomic, strong) NSDictionary *launchOptions;
+// Array of task requests that are being executed.
 @property (nonatomic, strong) NSMutableArray<EXTaskExecutionRequest *> *requests;
+
+// Table of registered tasks. Schema: { "<appId>": { "<taskName>": EXTask } }
 @property (nonatomic, strong) NSMutableDictionary<NSString *, NSMutableDictionary<NSString *, EXTask *> *> *tasks;
+
+// Dictionary with app records of running background apps. Schema: { "<appId>": EXAppRecordInterface }
 @property (nonatomic, strong) NSMutableDictionary<NSString *, id<EXAppRecordInterface>> *appRecords;
-@property (nonatomic, strong) NSMutableDictionary<NSString *, id<EXTaskManagerInterface>> *taskManagers;
+
+// MapTable with task managers of running apps. Schema: { "<appId>": EXTaskManagerInterface }
+@property (nonatomic, strong) NSMapTable<NSString *, id<EXTaskManagerInterface>> *taskManagers;
+
+// Dictionary with events queues storing event bodies that should be passed to the manager as soon as it's available.
+// Schema: { "<appId>": [<eventBodies...>] }
 @property (nonatomic, strong) NSMutableDictionary<NSString *, NSMutableArray<NSDictionary *> *> *eventsQueues;
 
 // Storing events per app. Schema: { "<appId>": [<eventIds...>] }
@@ -35,18 +44,11 @@ EX_REGISTER_SINGLETON_MODULE(TaskService)
     _tasks = [NSMutableDictionary new];
     _requests = [NSMutableArray new];
     _appRecords = [NSMutableDictionary new];
-    _taskManagers = [NSMutableDictionary new];
+    _taskManagers = [NSMapTable strongToWeakObjectsMapTable];
     _eventsQueues = [NSMutableDictionary new];
     _events = [NSMutableDictionary new];
-
-    [self restoreTasks];
   }
   return self;
-}
-
-- (void)dealloc
-{
-  NSLog(@"EXTaskManager: EXTaskService.dealloc");
 }
 
 + (nonnull instancetype)sharedInstance
@@ -63,6 +65,15 @@ EX_REGISTER_SINGLETON_MODULE(TaskService)
 }
 
 # pragma mark - EXTaskServiceInterface
+
+/**
+ *  Returns boolean value whether the task with given name is already registered for given appId.
+ */
+- (BOOL)hasRegisteredTaskWithName:(nonnull NSString *)taskName forAppId:(nonnull NSString *)appId
+{
+  id<EXTaskInterface> task = [self getTaskWithName:taskName forAppId:appId];
+  return task != nil;
+}
 
 /**
  *  Creates a new task, registers it and saves to the config stored in user defaults.
@@ -109,21 +120,15 @@ EX_REGISTER_SINGLETON_MODULE(TaskService)
     @throw [NSException exceptionWithName:@"E_INVALID_TASK_CONSUMER" reason:reason userInfo:nil];
   }
 
-  NSLog(@"EXTaskManager: unregistering task %@", task.name);
-
   if (task) {
     NSMutableDictionary *appTasks = [[self getTasksForAppId:appId] mutableCopy];
 
     [appTasks removeObjectForKey:taskName];
-    NSLog(@"EXTaskManager: unregistering task %@ %d", task.name, (int)appTasks.count);
 
     if (appTasks.count == 0) {
       [_tasks removeObjectForKey:appId];
     } else {
       [_tasks setObject:appTasks forKey:appId];
-    }
-    if (_tasks.count == 0) {
-      [self _unregisterAppLifecycleNotifications];
     }
 
     if ([task.consumer respondsToSelector:@selector(didUnregister)]) {
@@ -150,11 +155,6 @@ EX_REGISTER_SINGLETON_MODULE(TaskService)
 
     [_tasks removeObjectForKey:appId];
 
-    // Maybe unregister app lifecycle notification?
-    if (_tasks.count == 0) {
-      [self _unregisterAppLifecycleNotifications];
-    }
-
     // Remove the app from the config in user defaults.
     [self _removeFromConfigAppWithId:appId];
   }
@@ -179,20 +179,10 @@ EX_REGISTER_SINGLETON_MODULE(TaskService)
   return [_tasks objectForKey:appId];
 }
 
-- (NSDictionary *)getRestoredStateForAppId:(NSString *)appId
-{
-  NSUserDefaults *userDefaults = [NSUserDefaults standardUserDefaults];
-  NSDictionary *tasksConfig = [userDefaults dictionaryForKey:NSStringFromClass([self class])];
-  NSLog(@"EXTaskService.getRestoredStateForAppId: %@, %@", NSStringFromClass([self class]), tasksConfig.description);
-  return [[tasksConfig objectForKey:appId] objectForKey:@"tasks"];
-}
-
 - (void)notifyTaskWithName:(NSString *)taskName
                   forAppId:(NSString *)appId
      didFinishWithResponse:(NSDictionary *)response
 {
-  NSLog(@"EXTaskService got response from task %@ from app %@", taskName, appId);
-
   id<EXTaskInterface> task = [self getTaskWithName:taskName forAppId:appId];
   NSString *eventId = [response objectForKey:@"eventId"];
   id result = [response objectForKey:@"result"];
@@ -222,7 +212,6 @@ EX_REGISTER_SINGLETON_MODULE(TaskService)
 
       // Invalidate app record but after 1 seconds delay
       dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(1 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-        NSLog(@"EXTaskService will invalidate app record");
         if (![self->_events objectForKey:appId]) {
           [self _invalidateAppWithId:appId];
         }
@@ -274,14 +263,15 @@ EX_REGISTER_SINGLETON_MODULE(TaskService)
 
 - (void)setTaskManager:(id<EXTaskManagerInterface>)taskManager forAppId:(NSString *)appId
 {
-  NSLog(@"EXTaskService: setTaskManager:forAppId");
+  if (taskManager && [_taskManagers objectForKey:appId]) {
+    // If the task manager is already here, we don't want it to be overriden by another background JS context.
+    return;
+  }
 
   if (taskManager == nil) {
     [_taskManagers removeObjectForKey:appId];
   } else {
     [_taskManagers setObject:taskManager forKey:appId];
-
-    NSLog(@"EXTaskService: setTaskManager:forAppId 2");
     
     NSMutableArray *appEventQueue = [_eventsQueues objectForKey:appId];
 
@@ -300,8 +290,6 @@ EX_REGISTER_SINGLETON_MODULE(TaskService)
            withData:(nullable NSDictionary *)data
           withError:(nullable NSError *)error
 {
-  NSLog(@"EXTaskService: executing task %@", task.name);
-
   id<EXTaskManagerInterface> taskManager = [_taskManagers objectForKey:task.appId];
   NSDictionary *executionInfo = [self _executionInfoForTask:task];
   NSDictionary *body = @{
@@ -334,28 +322,6 @@ EX_REGISTER_SINGLETON_MODULE(TaskService)
   return;
 }
 
-# pragma mark - Application lifecycle notifications
-
-- (void)applicationWillResignActive
-{
-  [self _iterateTasksUsingBlock:^(EXTask *task) {
-    if ([task.consumer respondsToSelector:@selector(applicationWillResignActive)]) {
-      [task.consumer applicationWillResignActive];
-    }
-  }];
-  NSLog(@"EXTaskManager: app backgrounded");
-}
-
-- (void)applicationDidBecomeActive
-{
-  [self _iterateTasksUsingBlock:^(EXTask *task) {
-    if ([task.consumer respondsToSelector:@selector(applicationDidBecomeActive)]) {
-      [task.consumer applicationDidBecomeActive];
-    }
-  }];
-  NSLog(@"EXTaskManager: app foregrounded");
-}
-
 # pragma mark - statics
 
 + (BOOL)hasBackgroundModeEnabled:(nonnull NSString *)backgroundMode
@@ -368,7 +334,10 @@ EX_REGISTER_SINGLETON_MODULE(TaskService)
 
 - (void)applicationDidFinishLaunchingWithOptions:(NSDictionary *)launchOptions
 {
-  NSLog(@"EXTaskService applicationDidFinishLaunchingWithOptions");
+  [self restoreTasks];
+
+  EXTaskLaunchReason launchReason = [self _launchReasonForLaunchOptions:launchOptions];
+  [self runTasksWithReason:launchReason userInfo:launchOptions completionHandler:nil];
 }
 
 - (void)runTasksWithReason:(EXTaskLaunchReason)launchReason
@@ -376,6 +345,9 @@ EX_REGISTER_SINGLETON_MODULE(TaskService)
          completionHandler:(void (^)(UIBackgroundFetchResult))completionHandler
 {
   [self _runTasksSupportingLaunchReason:launchReason userInfo:userInfo callback:^(NSArray * _Nonnull results) {
+    if (!completionHandler) {
+      return;
+    }
     BOOL wasCompletionCalled = NO;
 
     // Iterate through the array of results. If there is at least one "NewData" or "Failed" result,
@@ -392,7 +364,6 @@ EX_REGISTER_SINGLETON_MODULE(TaskService)
     if (!wasCompletionCalled) {
       completionHandler(UIBackgroundFetchResultNoData);
     }
-    NSLog(@"EXTaskManager: completion handler called");
   }];
 }
 
@@ -417,7 +388,7 @@ EX_REGISTER_SINGLETON_MODULE(TaskService)
 
   [appTasks setObject:task forKey:task.name];
   [_tasks setObject:appTasks forKey:appId];
-  [task.consumer didReceiveTask:task];
+  [task.consumer didRegisterTask:task];
   return task;
 }
 
@@ -480,26 +451,6 @@ EX_REGISTER_SINGLETON_MODULE(TaskService)
   [userDefaults synchronize];
 }
 
-- (void)_registerAppLifecycleNotifications
-{
-  NSNotificationCenter *notificationCenter = [NSNotificationCenter defaultCenter];
-
-  [notificationCenter addObserver:self
-                         selector:@selector(applicationWillResignActive)
-                             name:UIApplicationWillResignActiveNotification
-                           object:nil];
-
-  [notificationCenter addObserver:self
-                         selector:@selector(applicationDidBecomeActive)
-                             name:UIApplicationDidBecomeActiveNotification
-                           object:nil];
-}
-
-- (void)_unregisterAppLifecycleNotifications
-{
-  [[NSNotificationCenter defaultCenter] removeObserver:self];
-}
-
 - (void)_iterateTasksUsingBlock:(void(^)(id<EXTaskInterface> task))block
 {
   for (NSString *appId in _tasks) {
@@ -510,26 +461,6 @@ EX_REGISTER_SINGLETON_MODULE(TaskService)
       block(task);
     }
   }
-}
-
-- (BOOL)_tasksConfig:(nullable NSDictionary *)tasksConfig hasConsumerSupportingLaunchReason:(EXTaskLaunchReason)launchReason
-{
-  if (tasksConfig == nil || [tasksConfig count] == 0) {
-    return NO;
-  }
-  for (NSString *taskName in tasksConfig) {
-    NSDictionary *taskConfig = [tasksConfig objectForKey:taskName];
-    NSString *consumerClassString = [taskConfig objectForKey:@"consumerClass"];
-    NSLog(@"EXTaskManager checking task %@", taskName);
-    if (consumerClassString != nil) {
-      Class consumerClass = NSClassFromString(consumerClassString);
-
-      if ([consumerClass respondsToSelector:@selector(supportsLaunchReason:)] && [consumerClass supportsLaunchReason:launchReason]) {
-        return YES;
-      }
-    }
-  }
-  return NO;
 }
 
 /**
@@ -572,8 +503,6 @@ EX_REGISTER_SINGLETON_MODULE(TaskService)
   __block EXTaskExecutionRequest *request;
 
   request = [[EXTaskExecutionRequest alloc] initWithCallback:^(NSArray * _Nonnull results) {
-    NSLog(@"EXTaskManager: EXTaskExecutionRequest callback, results = %@", results.description);
-
     if (callback != nil) {
       callback(results);
     }
@@ -585,32 +514,26 @@ EX_REGISTER_SINGLETON_MODULE(TaskService)
   [_requests addObject:request];
 
   [self _iterateTasksUsingBlock:^(id<EXTaskInterface> task) {
-    if ([task.consumer.class supportsLaunchReason:launchReason]) {
+    if ([task.consumer.class respondsToSelector:@selector(supportsLaunchReason:)] && [task.consumer.class supportsLaunchReason:launchReason]) {
       [self _addTask:task toRequest:request];
     }
   }];
 
+  // Evaluate request immediately if no tasks were added.
   [request maybeEvaluate];
 }
 
 - (void)_loadAppWithId:(nonnull NSString *)appId
                 appUrl:(nonnull NSString *)appUrl
 {
-  id<EXAppLoaderInterface> appLoader = [[EXAppLoaderProvider sharedInstance] createAppLoader];
+  id<EXAppLoaderInterface> appLoader = [[EXAppLoaderProvider sharedInstance] createAppLoader:@"react-native-experience"];
 
   if (appLoader != nil && appUrl != nil) {
     __block id<EXAppRecordInterface> appRecord;
     NSDictionary *options = @{ @"timeout": @(EXAppLoaderDefaultTimeout) };
 
-    NSLog(@"EXTaskManager: loading app with id %@ and appUrl %@", appId, appUrl);
-
     appRecord = [appLoader loadAppWithUrl:appUrl options:options callback:^(BOOL success, NSError *error) {
-      NSLog(@"EXTaskManager: App record with appId %@ has been loaded with success = %d", appId, success);
-
-      if (success) {
-        // cool!
-        NSLog(@"EXTaskService: cool, app is loaded!");
-      } else {
+      if (!success) {
         [self->_events removeObjectForKey:appId];
         [self->_eventsQueues removeObjectForKey:appId];
         [self->_appRecords removeObjectForKey:appId];
@@ -624,7 +547,6 @@ EX_REGISTER_SINGLETON_MODULE(TaskService)
 - (void)restoreTasks
 {
   NSDictionary *config = [self _dictionaryWithRegisteredTasks];
-  NSLog(@"EXTaskService: restoring config %@", config.description);
 
   for (NSString *appId in config) {
     NSDictionary *appConfig = [config objectForKey:appId];
@@ -672,7 +594,6 @@ EX_REGISTER_SINGLETON_MODULE(TaskService)
 
 - (void)_invalidateAppWithId:(NSString *)appId
 {
-  NSLog(@"EXTaskService invalidating app with appId = %@", appId);
   id<EXAppRecordInterface> appRecord = [_appRecords objectForKey:appId];
 
   if (appRecord) {
@@ -689,7 +610,7 @@ EX_REGISTER_SINGLETON_MODULE(TaskService)
   }
   return @{
            @"code": @(error.code),
-           @"message": error.localizedFailureReason,
+           @"message": error.description,
            };
 }
 

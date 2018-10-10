@@ -3,27 +3,27 @@
 #import <EXAppLoaderProvider/EXAppLoaderProvider.h>
 #import <EXAppLoaderProvider/EXAppLoaderInterface.h>
 
-static Class providedAppLoaderClass;
+static NSMutableDictionary<NSString *, Class> *providedAppLoaderClasses;
 
-extern void EXRegisterAppLoader(Class);
-extern void EXRegisterAppLoader(Class loaderClass)
+extern void EXRegisterAppLoader(NSString *, Class);
+extern void EXRegisterAppLoader(NSString *loaderName, Class loaderClass)
 {
-  if (providedAppLoaderClass == nil) {
-    if ([loaderClass conformsToProtocol:@protocol(EXAppLoaderInterface)]) {
-      providedAppLoaderClass = loaderClass;
-    } else {
-      NSLog(@"EXAppLoader class (%@) doesn't conform to EXAppLoaderInterface protocol.", NSStringFromClass(providedAppLoaderClass));
+  if ([loaderClass conformsToProtocol:@protocol(EXAppLoaderInterface)]) {
+    if (!providedAppLoaderClasses) {
+      providedAppLoaderClasses = [NSMutableDictionary new];
     }
+    [providedAppLoaderClasses setObject:loaderClass forKey:loaderName];
   } else {
-    NSLog(@"Another EXAppLoader class (%@) is already registered. Your project should depend on only one application loader.", NSStringFromClass(providedAppLoaderClass));
+    NSLog(@"EXAppLoader class (%@) doesn't conform to EXAppLoaderInterface protocol.", NSStringFromClass(loaderClass));
   }
 }
 
 @implementation EXAppLoaderProvider
 
-- (nullable id<EXAppLoaderInterface>)createAppLoader
+- (nullable id<EXAppLoaderInterface>)createAppLoader:(NSString *)loaderName
 {
-  return [providedAppLoaderClass new];
+  Class loaderClass = [providedAppLoaderClasses objectForKey:loaderName];
+  return [loaderClass new];
 }
 
 # pragma mark - static

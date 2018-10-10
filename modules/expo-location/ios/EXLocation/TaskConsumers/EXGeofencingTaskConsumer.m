@@ -17,50 +17,37 @@
 
 @implementation EXGeofencingTaskConsumer
 
-+ (BOOL)supportsLaunchReason:(EXTaskLaunchReason)launchReason
-{
-  return launchReason == EXTaskLaunchReasonLocation;
-}
-
 - (void)dealloc
 {
-  if (_locationManager != nil) {
-    [self stopMonitoringAllRegions];
-    _locationManager = nil;
-  }
+  [self reset];
 }
 
 # pragma mark - EXTaskConsumerInterface
 
 - (void)setOptions:(nonnull NSDictionary *)options
 {
-  NSLog(@"EXGeofencingTaskConsumer.setOptions");
-
   [self stopMonitoringAllRegions];
   [self startMonitoringRegionsForTask:self->_task];
 }
 
-- (void)didReceiveTask:(id<EXTaskInterface>)task
+- (void)didRegisterTask:(id<EXTaskInterface>)task
 {
-  NSLog(@"EXGeofencingTaskConsumer: didReceiveTask %@ %@", task.name, self.description);
   [self startMonitoringRegionsForTask:task];
 }
 
 - (void)didUnregister
 {
-  [self stopMonitoringAllRegions];
-  _locationManager = nil;
-  _task = nil;
-
-  NSLog(@"EXGeofencingTaskConsumer: EXGeofencingTaskConsumer.didUnregister");
-}
-
-- (void)didFinishTask
-{
-  NSLog(@"EXGeofencingTaskConsumer: EXGeofencingTaskConsumer.didFinishTask");
+  [self reset];
 }
 
 # pragma mark - helpers
+
+- (void)reset
+{
+  [self stopMonitoringAllRegions];
+  _locationManager = nil;
+  _task = nil;
+}
 
 - (void)startMonitoringRegionsForTask:(id<EXTaskInterface>)task
 {
@@ -122,7 +109,6 @@
 - (void)locationManager:(CLLocationManager *)manager didEnterRegion:(CLRegion *)region
 {
   if ([self regionStateForIdentifier:region.identifier] != CLRegionStateInside) {
-    NSLog(@"EXTaskManager: didEnterRegion %@", self.description);
     [self setRegionState:CLRegionStateInside forIdentifier:region.identifier];
     [self executeTaskWithRegion:region eventType:EXGeofencingEventTypeEnter];
   }
@@ -131,7 +117,6 @@
 - (void)locationManager:(CLLocationManager *)manager didExitRegion:(CLRegion *)region
 {
   if ([self regionStateForIdentifier:region.identifier] != CLRegionStateOutside) {
-    NSLog(@"EXTaskManager: didExitRegion %@", self.description);
     [self setRegionState:CLRegionStateOutside forIdentifier:region.identifier];
     [self executeTaskWithRegion:region eventType:EXGeofencingEventTypeExit];
   }

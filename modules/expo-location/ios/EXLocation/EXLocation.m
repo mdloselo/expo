@@ -23,6 +23,14 @@ NS_ASSUME_NONNULL_BEGIN
 NSString * const EXLocationChangedEventName = @"Exponent.locationChanged";
 NSString * const EXHeadingChangedEventName = @"Exponent.headingChanged";
 
+// Location accuracies
+NSString *const EXLocationAccuracyBestForNavigation = @"bestForNavigation";
+NSString *const EXLocationAccuracyHighest = @"highest";
+NSString *const EXLocationAccuracyHigh = @"high";
+NSString *const EXLocationAccuracyBalanced = @"balanced";
+NSString *const EXLocationAccuracyLow = @"low";
+NSString *const EXLocationAccuracyLowest = @"lowest";
+
 // Geofencing event types
 NSString *const EXGeofencingEventTypeEnter = @"enter";
 NSString *const EXGeofencingEventTypeExit = @"exit";
@@ -82,6 +90,14 @@ EX_EXPORT_MODULE(ExpoLocation);
 - (NSDictionary *)constantsToExport
 {
   return @{
+           @"Accuracy": @{
+               @"BEST_FOR_NAVIGATION": EXLocationAccuracyBestForNavigation,
+               @"HIGHEST": EXLocationAccuracyHighest,
+               @"HIGH": EXLocationAccuracyHigh,
+               @"BALANCED": EXLocationAccuracyBalanced,
+               @"LOW": EXLocationAccuracyLow,
+               @"LOWEST": EXLocationAccuracyLowest,
+               },
            @"GeofencingEventType": @{
                @"ENTER": EXGeofencingEventTypeEnter,
                @"EXIT": EXGeofencingEventTypeExit,
@@ -347,6 +363,8 @@ EX_EXPORT_METHOD_AS(requestPermissionsAsync,
                     withRejecter:reject];
 }
 
+# pragma mark - Background location
+
 EX_EXPORT_METHOD_AS(startLocationUpdatesAsync,
                     startLocationUpdatesForTaskWithName:(nonnull NSString *)taskName
                     withOptions:(nonnull NSDictionary *)options
@@ -356,6 +374,9 @@ EX_EXPORT_METHOD_AS(startLocationUpdatesAsync,
   if (![self checkPermissions:reject] || ![self checkBackgroundServices:reject]) {
     return;
   }
+  if (![CLLocationManager significantLocationChangeMonitoringAvailable]) {
+    return reject(@"E_SIGNIFICANT_CHANGES_UNAVAILABLE", @"Significant location changes monitoring is not available.", nil);
+  }
 
   @try {
     [_tasksManager registerTaskWithName:taskName consumer:[EXLocationTaskConsumer class] options:options];
@@ -363,8 +384,6 @@ EX_EXPORT_METHOD_AS(startLocationUpdatesAsync,
   @catch (NSException *e) {
     return reject(e.name, e.reason, nil);
   }
-
-  NSLog(@"EXLocation.registerLocationTaskAsync %@", taskName);
   resolve([NSNull null]);
 }
 
@@ -378,7 +397,6 @@ EX_EXPORT_METHOD_AS(stopLocationUpdatesAsync,
   }
 
   @try {
-    NSLog(@"EXLocation.unregisterLocationTaskAsync %@", taskName);
     [_tasksManager unregisterTaskWithName:taskName ofConsumerClass:[EXLocationTaskConsumer class]];
   } @catch (NSException *e) {
     return reject(e.name, e.reason, nil);
@@ -386,11 +404,19 @@ EX_EXPORT_METHOD_AS(stopLocationUpdatesAsync,
   resolve([NSNull null]);
 }
 
+EX_EXPORT_METHOD_AS(hasStartedLocationUpdatesAsync,
+                    hasStartedLocationUpdatesForTaskWithName:(nonnull NSString *)taskName
+                    resolve:(EXPromiseResolveBlock)resolve
+                    reject:(EXPromiseRejectBlock)reject)
+{
+  resolve(@([_tasksManager taskWithName:taskName hasConsumerOfClass:[EXLocationTaskConsumer class]]));
+}
+
 # pragma mark - Geofencing
 
 EX_EXPORT_METHOD_AS(startGeofencingAsync,
                     startGeofencingWithTaskName:(nonnull NSString *)taskName
-                    withRegions:(nonnull NSArray *)regions
+                    withOptions:(nonnull NSDictionary *)options
                     resolve:(EXPromiseResolveBlock)resolve
                     reject:(EXPromiseRejectBlock)reject)
 {
@@ -402,8 +428,6 @@ EX_EXPORT_METHOD_AS(startGeofencingAsync,
   }
 
   @try {
-    NSDictionary *options = @{ @"regions": regions };
-
     if ([_tasksManager hasRegisteredTaskWithName:taskName]) {
       // Update existing task with the new regions
       [_tasksManager setOptions:options forTaskWithName:taskName ofConsumerClass:[EXGeofencingTaskConsumer class]];
@@ -489,6 +513,19 @@ EX_EXPORT_METHOD_AS(stopGeofencingAsync,
         },
     @"timestamp": @([location.timestamp timeIntervalSince1970] * 1000),
     };
+}
+
++ (CLLocationAccuracy)accuracyFromString:(NSString *)accuracyString
+{
+  NSDictionary *mapping = @{
+                            EXLocationAccuracyBestForNavigation: @(kCLLocationAccuracyBestForNavigation),
+                            EXLocationAccuracyHighest: @(kCLLocationAccuracyBest),
+                            EXLocationAccuracyHigh: @(kCLLocationAccuracyNearestTenMeters),
+                            EXLocationAccuracyBalanced: @(kCLLocationAccuracyHundredMeters),
+                            EXLocationAccuracyLow: @(kCLLocationAccuracyKilometer),
+                            EXLocationAccuracyLowest: @(kCLLocationAccuracyThreeKilometers),
+                            };
+  return mapping[accuracyString] ? [mapping[accuracyString] doubleValue] : kCLLocationAccuracyHundredMeters;
 }
 
 # pragma mark - EXAppLifecycleListener

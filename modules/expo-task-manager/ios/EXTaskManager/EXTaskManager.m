@@ -74,18 +74,13 @@ EX_EXPORT_MODULE(ExpoTaskManager);
  */
 - (void)startObserving
 {
-  NSLog(@"EXTaskManager.startObserving");
-
   if (!_startedObserving) {
     NSString *appUrl = [self _findAppUrl];
     [_taskService maybeUpdateAppUrl:appUrl forAppId:_appId];
 
-    NSLog(@"EXTaskManager.startObserving, eventsQueue = %@", [_eventsQueue description]);
-
     // Emit queued events
     if (_eventsQueue.count > 0) {
       for (NSDictionary *eventBody in _eventsQueue) {
-        NSLog(@"EXTaskManager executing event %@", eventBody[@"executionInfo"][@"taskName"]);
         [_eventEmitter sendEventWithName:EXTaskManagerEventName body:eventBody];
       }
     }
@@ -105,7 +100,6 @@ EX_EXPORT_METHOD_AS(notifyTaskDidFinish,
                     resolve:(EXPromiseResolveBlock)resolve
                     reject:(EXPromiseRejectBlock)reject)
 {
-  NSLog(@"EXTaskManager notifyTaskDidFinish %@", taskName);
   [_taskService notifyTaskWithName:taskName forAppId:_appId didFinishWithResponse:response];
   resolve([NSNull null]);
 }
@@ -115,7 +109,6 @@ EX_EXPORT_METHOD_AS(isTaskRegisteredAsync,
                     resolve:(EXPromiseResolveBlock)resolve
                     reject:(EXPromiseRejectBlock)reject)
 {
-  NSLog(@"EXTaskManager.isTaskRegistered %@, %@", taskName, @([self hasRegisteredTaskWithName:taskName]));
   resolve(@([self hasRegisteredTaskWithName:taskName]));
 }
 
@@ -157,18 +150,12 @@ EX_EXPORT_METHOD_AS(unregisterAllTasksAsync,
 
 - (BOOL)hasRegisteredTaskWithName:(nonnull NSString *)taskName
 {
-  id<EXTaskInterface> task = [_taskService getTaskWithName:taskName forAppId:_appId];
-  return task != nil;
+  return [_taskService hasRegisteredTaskWithName:taskName forAppId:_appId];
 }
 
 - (BOOL)taskWithName:(nonnull NSString *)taskName hasConsumerOfClass:(Class)consumerClass
 {
   return [_taskService taskWithName:taskName forAppId:_appId hasConsumerOfClass:consumerClass];
-}
-
-- (id<EXTaskInterface>)getTaskWithName:(nonnull NSString *)taskName
-{
-  return [_taskService getTaskWithName:taskName forAppId:_appId];
 }
 
 - (void)setOptions:(nonnull NSDictionary *)options
@@ -186,8 +173,6 @@ EX_EXPORT_METHOD_AS(unregisterAllTasksAsync,
                      options:(nonnull NSDictionary *)options
 {
   NSString *appUrl = [self _findAppUrl];
-
-  NSLog(@"EXTaskManager: I'll register task (%@) for app with bundle url: %@", taskName, appUrl);
 
   [_taskService registerTaskWithName:taskName
                                appId:_appId
@@ -211,7 +196,6 @@ EX_EXPORT_METHOD_AS(unregisterAllTasksAsync,
 {
   if (_startedObserving) {
     // Module's event emitter is already being observed, so we can send events.
-    NSLog(@"EXTaskManager executing event %@", body[@"executionInfo"][@"taskName"]);
     [_eventEmitter sendEventWithName:EXTaskManagerEventName body:body];
   } else {
     // Otherwise add event body to the queue (it will be send in `startObserving`).

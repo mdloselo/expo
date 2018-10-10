@@ -114,7 +114,6 @@ typedef void (^SDK21RCTSourceLoadBlock)(NSError *error, NSData *source, int64_t 
     _reactBridge = [[bridgeClass alloc] initWithDelegate:self launchOptions:[self launchOptionsForBridge]];
 
     if (!_isHeadless) {
-      NSLog(@"ReactAppManager.rebuildBridge 3");
       // We don't want to run the whole JS app if app launches in the background,
       // so we're omitting creation of RCTRootView that triggers runApplication and setups React view hierarchy.
       _reactRootView = [[rootViewClass alloc] initWithBridge:_reactBridge

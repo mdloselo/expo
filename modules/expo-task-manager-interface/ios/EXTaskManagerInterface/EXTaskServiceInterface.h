@@ -5,6 +5,12 @@
 @protocol EXTaskServiceInterface
 
 /**
+ *  Returns boolean value whether the task with given name is already registered for given appId.
+ */
+- (BOOL)hasRegisteredTaskWithName:(nonnull NSString *)taskName
+                         forAppId:(nonnull NSString *)appId;
+
+/**
  *  Registers task in any kind of persistent storage, so it could be restored in future sessions.
  */
 - (void)registerTaskWithName:(nonnull NSString *)taskName
@@ -34,21 +40,10 @@
   hasConsumerOfClass:(Class)consumerClass;
 
 /**
- *  Returns task object with given taskName and for given appId.
- */
-- (nullable id<EXTaskInterface>)getTaskWithName:(nonnull NSString *)taskName
-                                       forAppId:(nonnull NSString *)appId;
-
-/**
  *  Returns dictionary of tasks for given appId. Dictionary in which the keys are the names for tasks,
  *  while the values are the task objects.
  */
 - (nonnull NSDictionary *)getTasksForAppId:(nonnull NSString *)appId;
-
-/**
- *  Returns tasks configuration for given appId, that have been saved to the persistent storage.
- */
-- (nullable NSDictionary *)getRestoredStateForAppId:(nonnull NSString *)appId;
 
 /**
  *  Notifies the service that a task has just finished.

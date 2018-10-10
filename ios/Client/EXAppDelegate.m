@@ -37,7 +37,6 @@ NS_ASSUME_NONNULL_BEGIN
 
 - (void)applicationWillEnterForeground:(UIApplication *)application
 {
-  NSLog(@"ExpoClient will enter foreground");
   [self _setupUserInterfaceForApplication:application withLaunchOptions:nil];
 }
 
