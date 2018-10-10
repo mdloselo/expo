@@ -55,6 +55,7 @@ import host.exp.exponent.storage.ExponentSharedPreferences;
 import host.exp.exponent.utils.JSONBundleConverter;
 import host.exp.expoview.Exponent;
 import host.exp.expoview.R;
+import versioned.host.exp.exponent.ExponentPackage;
 
 import static host.exp.exponent.kernel.KernelConstants.INTENT_URI_KEY;
 import static host.exp.exponent.kernel.KernelConstants.LINKING_URI_KEY;

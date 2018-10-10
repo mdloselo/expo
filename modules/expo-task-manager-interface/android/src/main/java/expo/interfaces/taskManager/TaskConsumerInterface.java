@@ -2,8 +2,11 @@ package expo.interfaces.taskManager;
 
 import android.content.Intent;
 
+import java.util.Map;
+
 public interface TaskConsumerInterface {
-  void onRegister(TaskInterface task) throws Exception;
-  void onUnregister() throws Exception;
-  void onHandleIntent(Intent intent);
+  void didRegister(TaskInterface task);
+  void didUnregister();
+  void didWakeUpWithIntent(Intent intent);
+  void setOptions(Map<String, Object> options);
 }

@@ -98,3 +98,18 @@ project(":expo-ads-admob").projectDir = new File(rootDir, "../modules/expo-ads-a
 
 include ":expo-local-authentication"
 project(":expo-local-authentication").projectDir = new File(rootDir, "../modules/expo-local-authentication/android")
+
+include ":expo-task-manager-interface"
+project(":expo-task-manager-interface").projectDir = new File(rootDir, "../modules/expo-task-manager-interface/android")
+
+include ":expo-task-manager"
+project(":expo-task-manager").projectDir = new File(rootDir, "../modules/expo-task-manager/android")
+
+include ":expo-app-loader-provider"
+project(":expo-app-loader-provider").projectDir = new File(rootDir, "../modules/expo-app-loader-provider/android")
+
+include ":expo-background-fetch"
+project(":expo-background-fetch").projectDir = new File(rootDir, "../modules/expo-background-fetch/android")
+
+include ":expo-app-loader-provider"
+project(":expo-app-loader-provider").projectDir = new File(rootDir, "../modules/expo-app-loader-provider/android")

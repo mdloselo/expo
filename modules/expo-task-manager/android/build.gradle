@@ -71,7 +71,6 @@ if (new File(rootProject.projectDir.parentFile, 'pubspec.yaml').exists()) {
 dependencies {
     expendency "expo-core"
     expendency "expo-task-manager-interface"
-    expendency "expo-react-native-loader"
-
-//    implementation 'com.google.code.gson:gson:2.8.5'
+    expendency "expo-constants-interface"
+    expendency "expo-app-loader-provider"
 }

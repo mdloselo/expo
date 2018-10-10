@@ -4,6 +4,7 @@ import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
 import android.location.Location;
+import android.location.LocationManager;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
@@ -11,83 +12,79 @@ import android.util.Log;
 
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
+import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationResult;
 import com.google.android.gms.location.LocationServices;
 
-import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
+import expo.interfaces.taskManager.TaskConsumer;
+import expo.interfaces.taskManager.TaskManagerUtilsInterface;
 import expo.interfaces.taskManager.TaskConsumerInterface;
 import expo.interfaces.taskManager.TaskInterface;
-import expo.interfaces.taskManager.TaskManagerInterface;
 import expo.modules.location.LocationModule;
+import io.nlopez.smartlocation.location.config.LocationParams;
 
-public class LocationTaskConsumer implements TaskConsumerInterface, GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener {
-  private WeakReference<Context> mContextRef;
+public class LocationTaskConsumer extends TaskConsumer implements TaskConsumerInterface, GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener {
+  private static final String TAG = "LocationTaskConsumer";
+
   private TaskInterface mTask;
+  private PendingIntent mPendingIntent;
   private GoogleApiClient mGoogleApiClient;
   private LocationRequest mLocationRequest;
-  private TaskManagerInterface mTaskManager;
-  private PendingIntent mPendingIntent;
+  private FusedLocationProviderClient mLocationClient;
 
-  public LocationTaskConsumer(Context context, TaskManagerInterface taskManager) {
-    mContextRef = new WeakReference<>(context);
-    mTaskManager = taskManager;
+  public LocationTaskConsumer(Context context, TaskManagerUtilsInterface taskManagerUtils) {
+    super(context, taskManagerUtils);
   }
 
-  public void onRegister(TaskInterface task) throws Exception {
-    mTask = task;
+  //region TaskConsumerInterface
 
-    Context context = mContextRef.get();
+  public void didRegister(TaskInterface task) {
+    Context context = getContext();
 
     if (context == null) {
-      throw new Exception("The context has been abandoned.");
+      Log.w(TAG, "The context has been abandoned.");
+      return;
+    }
+    if (!isAnyProviderAvailable()) {
+      Log.w(TAG, "There is no location provider available.");
+      return;
     }
 
-    prepareGoogleClient();
-    prepareLocationRequest();
-    preparePendingIntent();
+    mTask = task;
+    mGoogleApiClient = prepareGoogleClient();
+    mLocationRequest = prepareLocationRequest();
+    mPendingIntent = preparePendingIntent();
 
     try {
-      Log.i("EXPO", "Starting location updates");
-
-      LocationServices
-          .getFusedLocationProviderClient(context)
-          .requestLocationUpdates(mLocationRequest, mPendingIntent);
+      mLocationClient = LocationServices.getFusedLocationProviderClient(context);
+      mLocationClient.requestLocationUpdates(mLocationRequest, mPendingIntent);
     } catch (SecurityException e) {
-      throw new Exception("Location request has been rejected.", e);
+      Log.w(TAG, "Location request has been rejected.", e);
     }
   }
 
-  public void onUnregister() throws Exception {
-    if (mPendingIntent == null) {
-      preparePendingIntent();
+  public void didUnregister() {
+    if (mLocationClient != null && mPendingIntent != null) {
+      mLocationClient.removeLocationUpdates(mPendingIntent);
     }
-
-    Context context = mContextRef.get();
-
-    if (context == null) {
-      throw new Exception("The context has been abandoned.");
-    }
-
-    LocationServices
-        .getFusedLocationProviderClient(context)
-        .removeLocationUpdates(mPendingIntent);
+    mTask = null;
+    mPendingIntent = null;
+    mGoogleApiClient = null;
+    mLocationRequest = null;
+    mLocationClient = null;
   }
 
-  public void onHandleIntent(Intent intent) {
-    Log.i("EXPO", "LocationTaskConsumer.onHandleIntent 1");
-
+  public void didWakeUpWithIntent(Intent intent) {
     if (mTask == null) {
-      // TODO: execution failure
       return;
     }
 
     LocationResult result = LocationResult.extractResult(intent);
-
-    Log.i("EXPO", "LocationTaskConsumer.onHandleIntent 2");
 
     if (result != null) {
       List<Location> locations = result.getLocations();
@@ -99,15 +96,12 @@ public class LocationTaskConsumer implements TaskConsumerInterface, GoogleApiCli
         locationBundles.add(locationBundle);
       }
 
-      Log.i("EXPO", "LocationTaskConsumer.onHandleIntent 3");
-
       data.putParcelableArrayList("locations", locationBundles);
-      mTask.executeWithData(data);
-
-      Log.i("EXPO", "Executed background location task with intent...");
+      mTask.execute(data, null);
     }
   }
 
+  //endregion
   // GoogleApiClient callbacks
 
   @Override
@@ -125,34 +119,64 @@ public class LocationTaskConsumer implements TaskConsumerInterface, GoogleApiCli
     Log.i("EXPO", "Google API Client connection failed");
   }
 
-  // private
+  //region private
 
-  private void prepareGoogleClient() {
-    Context context = mContextRef.get();
-
-    if (mGoogleApiClient != null || context == null) {
-      return;
-    }
-
-    mGoogleApiClient = new GoogleApiClient.Builder(context)
+  private GoogleApiClient prepareGoogleClient() {
+    Context context = getContext();
+    GoogleApiClient client = new GoogleApiClient.Builder(context)
         .addConnectionCallbacks(this)
         .addApi(LocationServices.API)
         .build();
 
-    mGoogleApiClient.connect();
+    client.connect();
+    return client;
   }
 
-  private void prepareLocationRequest() {
-    mLocationRequest = new LocationRequest();
-    mLocationRequest.setInterval(10 * 1000);
-    mLocationRequest.setFastestInterval(5 * 1000);
-    mLocationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
-    mLocationRequest.setMaxWaitTime(30 * 1000);
+  private LocationRequest prepareLocationRequest() {
+    Map<String, Object> options = mTask.getOptions();
+    LocationParams locationParams = LocationModule.mapOptionsToLocationParams(options);
+
+    String accuracy = options.containsKey("accuracy")
+        ? (String) options.get("accuracy")
+        : LocationModule.ACCURACY_BALANCED;
+
+    return new LocationRequest()
+        .setFastestInterval(locationParams.getInterval())
+        .setInterval(locationParams.getInterval())
+        .setSmallestDisplacement(locationParams.getDistance())
+        .setPriority(mapAccuracyToPriority(accuracy));
   }
 
-  private void preparePendingIntent() {
-    if (mPendingIntent == null) {
-      mPendingIntent = mTaskManager.createTaskIntent(mTask);
+  private PendingIntent preparePendingIntent() {
+    return getTaskManagerUtils().createTaskIntent(getContext(), mTask);
+  }
+
+  private int mapAccuracyToPriority(String accuracy) {
+    switch (accuracy) {
+      case LocationModule.ACCURACY_BEST_FOR_NAVIGATION:
+      case LocationModule.ACCURACY_HIGHEST:
+      case LocationModule.ACCURACY_HIGH:
+        return LocationRequest.PRIORITY_HIGH_ACCURACY;
+      case LocationModule.ACCURACY_BALANCED:
+      default:
+        return LocationRequest.PRIORITY_BALANCED_POWER_ACCURACY;
+      case LocationModule.ACCURACY_LOW:
+        return LocationRequest.PRIORITY_LOW_POWER;
+      case LocationModule.ACCURACY_LOWEST:
+        return LocationRequest.PRIORITY_NO_POWER;
     }
   }
+
+  private boolean isAnyProviderAvailable() {
+    Context context = getContext();
+
+    if (context == null) {
+      return false;
+    }
+
+    LocationManager locationManager = (LocationManager)context.getSystemService(Context.LOCATION_SERVICE);
+    return locationManager.isProviderEnabled("gps") || locationManager.isProviderEnabled("network");
+  }
+
+  //endregion
 }

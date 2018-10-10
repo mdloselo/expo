@@ -7,25 +7,37 @@ import org.json.JSONObject;
 import java.util.HashMap;
 import java.util.Map;
 
+import expo.interfaces.taskManager.TaskServiceInterface;
 import expo.interfaces.taskManager.TaskConsumerInterface;
 import expo.interfaces.taskManager.TaskInterface;
-import expo.interfaces.taskManager.TaskManagerInterface;
 
 public class Task implements TaskInterface {
   private String mName;
+  private String mAppId;
+  private String mAppUrl;
   private TaskConsumerInterface mConsumer;
   private Map<String, Object> mOptions;
-  private TaskManagerInterface mManager;
+  private TaskServiceInterface mService;
 
-  public Task(String name, TaskConsumerInterface consumer, Map<String, Object> options, TaskManagerInterface manager) {
+  public Task(String name, String appId, String appUrl, TaskConsumerInterface consumer, Map<String, Object> options, TaskServiceInterface service) {
     mName = name;
+    mAppId = appId;
+    mAppUrl = appUrl;
     mConsumer = consumer;
     mOptions = options;
-    mManager = manager;
+    mService = service;
   }
 
   public String getName() {
     return mName;
+  }
+
+  public String getAppId() {
+    return mAppId;
+  }
+
+  public String getAppUrl() {
+    return mAppUrl;
   }
 
   public TaskConsumerInterface getConsumer() {
@@ -43,11 +55,11 @@ public class Task implements TaskInterface {
     return new JSONObject(data).toString();
   }
 
-  public void executeWithData(Bundle data) {
-    mManager.executeTaskWithData(this, data);
+  public void execute(Bundle data, Error error) {
+    mService.executeTask(this, data, error);
   }
 
-  public void executeWithError(Error error) {
-    mManager.executeTaskWithError(this, error);
+  public void setOptions(Map<String, Object> options) {
+    mOptions = options;
   }
 }

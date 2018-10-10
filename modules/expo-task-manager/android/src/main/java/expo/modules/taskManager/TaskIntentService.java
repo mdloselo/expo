@@ -1,11 +1,12 @@
 package expo.modules.taskManager;
 
+import android.app.Application;
 import android.app.IntentService;
+import android.content.Context;
 import android.content.Intent;
 import android.util.Log;
 
 public class TaskIntentService extends IntentService {
-
   public TaskIntentService() {
     super("TaskIntentService");
   }
@@ -18,8 +19,9 @@ public class TaskIntentService extends IntentService {
       return;
     }
 
-    Log.i("EXPO", "TaskIntentService, action = " + intent.getAction());
+    Context context = getApplicationContext();
+    Application application = getApplication();
 
-    TaskManager.handleIntent(getApplication(), intent);
+    TaskService.getInstance(context).handleIntent(application, intent);
   }
 }
